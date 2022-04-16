@@ -1,0 +1,18 @@
+buildscript {
+    ext {
+        set("projectVersion", "0.0.1-SNAPSHOT")
+        set("springBootVersion", "2.6.6")
+        set("springCloudVersion", "2021.0.1")
+        set("springDependencyVersion", "1.0.11.RELEASE")
+        set("frontendDir", "$projectDir/frontend")
+    }
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath "io.spring.gradle:dependency-management-plugin:${springDependencyVersion}"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+        classpath "io.freefair.gradle:lombok-plugin:6.4.2"
+        classpath "io.freefair.gradle:maven-plugin:6.4.2"
+    }
+}
