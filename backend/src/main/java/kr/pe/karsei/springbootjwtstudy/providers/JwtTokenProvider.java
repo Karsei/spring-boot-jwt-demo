@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Date;
 
@@ -18,11 +19,11 @@ public class JwtTokenProvider {
     @Value("${jwt.secret-key}")
     private String secretKey;
 
-    // Access Token 유효시간 (30분)
-    private static final long TIME_VALID_ACCEES_TOKEN = 30 * 60 * 1000L;
+    // Access Token 유효시간 (10분)
+    private static final long TIME_VALID_ACCEES_TOKEN = Duration.ofMinutes(10).toMillis();
 
-    // Refresh Token 유효시간
-    private static final long TIME_VALID_REFRESH_TOKEN = 60 * 60 * 1000L;
+    // Refresh Token 유효시간 (30분)
+    private static final long TIME_VALID_REFRESH_TOKEN = Duration.ofMinutes(30).toMillis();
 
     /**
      * 생성자를 만들면서 미리 Secret Key 를 Base64 로 변환합니다.
