@@ -1,4 +1,4 @@
-package kr.pe.karsei.springbootwithreact.controllers;
+package kr.pe.karsei.springbootjwtstudy.controllers;
 
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.web.bind.annotation.GetMapping;

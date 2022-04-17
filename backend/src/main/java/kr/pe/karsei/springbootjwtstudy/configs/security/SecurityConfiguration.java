@@ -1,5 +1,6 @@
 package kr.pe.karsei.springbootwithreact.configs.security;
 
+import kr.pe.karsei.springbootwithreact.providers.JwtTokenProvider;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
@@ -25,11 +27,25 @@ public class SecurityConfiguration {
     @Configuration
     @Order(98)
     static class totalAdapter extends WebSecurityConfigurerAdapter {
+        private final JwtTokenProvider jwtTokenProvider;
+        public totalAdapter(JwtTokenProvider jwtTokenProvider) {
+            this.jwtTokenProvider = jwtTokenProvider;
+        }
+
+        /**
+         * 정적 자원에 대한 Security 를 설정한다.
+         * @param web WebSecurity 객체
+         */
         @Override
         public void configure(WebSecurity web) {
             web
                     // 정적 자원은 Security 설정을 적용하지 않는다.
                     .ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+        }
+
+        @Bean
+        public JwtAuthenticationFilter jwtAuthenticationFilter() {
+            return new JwtAuthenticationFilter(jwtTokenProvider);
         }
 
         @Override
@@ -42,8 +58,10 @@ public class SecurityConfiguration {
                     .and()
                         .authorizeRequests()
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-                        .antMatchers("/api/**").permitAll()
+                        .antMatchers("/auth/**").permitAll()
+                        .anyRequest().authenticated()
                     .and()
+                        .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                         .exceptionHandling()
                         .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
                         .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));

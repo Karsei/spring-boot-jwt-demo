@@ -1,4 +1,4 @@
-package kr.pe.karsei.springbootwithreact;
+package kr.pe.karsei.springbootjwtstudy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
