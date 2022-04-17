@@ -18,6 +18,11 @@ public class AuthController {
         this.authUserService = authUserService;
     }
 
+    /**
+     * 인증 요청을 담당합니다.
+     * @param params 필요 파라미터
+     * @return Token 정보 객체
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> params) {
         // 인증 및 토큰 생성

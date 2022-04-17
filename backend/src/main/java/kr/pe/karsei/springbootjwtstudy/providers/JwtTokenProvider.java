@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import kr.pe.karsei.springbootjwtstudy.models.AuthUser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -102,9 +103,15 @@ public class JwtTokenProvider {
      * HTTP Request 의 Header 에서 JWT Token 값을 가져옵니다.
      * @param request HTTP 요청 객체
      * @return JWT Token 문자열
+     * @throws IllegalArgumentException 인증 헤더가 올바르지 않을 경우 예외 발생
      */
     public String resolveToken(HttpServletRequest request) {
-        return request.getHeader("X-AUTH-TOKEN");
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer "))
+            throw new IllegalArgumentException("인증 헤더가 올바르지 않습니다.");
+
+        return authHeader.substring("Bearer ".length());
+        // return request.getHeader("X-AUTH-TOKEN");
     }
 
     /**

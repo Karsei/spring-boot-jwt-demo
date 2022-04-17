@@ -59,7 +59,7 @@ public class AuthUserService implements UserDetailsService {
     public AuthUser loadUserByUsername(String username) throws UsernameNotFoundException {
         String someId = "developer";
         if (someId.equals(username)) {
-            return new AuthUser(1L, someId, "test@test.com", new ArrayList<>());
+            return new AuthUser(1L, someId, new ArrayList<>());
         }
         else {
             throw new UsernameNotFoundException("사용자를 찾을 수 없습니다.");
