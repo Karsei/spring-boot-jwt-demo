@@ -1,9 +1,11 @@
 package kr.pe.karsei.springbootjwtstudy.configs.security;
 
+import kr.pe.karsei.springbootjwtstudy.providers.JwtTokenProvider;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
@@ -23,12 +25,27 @@ import java.util.List;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
 public class SecurityConfiguration {
+    /**
+     * 인증 및 전역 관련
+     */
     @Configuration
-    @Order(98)
-    static class totalAdapter extends WebSecurityConfigurerAdapter {
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        public totalAdapter(JwtAuthenticationFilter jwtAuthenticationFilter) {
-            this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    @Order(97)
+    static class AuthAdapter extends WebSecurityConfigurerAdapter {
+        @Override
+        protected void configure(HttpSecurity httpSecurity) throws Exception {
+            httpSecurity
+                    .antMatcher("/auth/**")
+                    .csrf().disable()
+                    .httpBasic().disable()
+                    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    .and()
+                    .authorizeRequests()
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                        .anyRequest().permitAll()
+                    .and()
+                        .exceptionHandling()
+                        .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));
         }
 
         /**
@@ -42,25 +59,10 @@ public class SecurityConfiguration {
                     .ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
         }
 
-        @Override
-        protected void configure(HttpSecurity httpSecurity) throws Exception {
-            httpSecurity
-                    .antMatcher("/api/**")
-                    .csrf().disable()
-                    .httpBasic().disable()
-                    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .and()
-                        .authorizeRequests()
-                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-                        .antMatchers("/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                    .and()
-                        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                        .exceptionHandling()
-                        .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
-                        .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));
-        }
-
+        /**
+         * CORS 관련 설정을 변경한다.
+         * @return {@link UrlBasedCorsConfigurationSource} 설정 객체
+         */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
             CorsConfiguration configuration = new CorsConfiguration();
@@ -76,6 +78,50 @@ public class SecurityConfiguration {
         }
     }
 
+    /**
+     * API 관련
+     */
+    @Configuration
+    @Order(98)
+    static class ApiAdapter extends WebSecurityConfigurerAdapter {
+        private final JwtTokenProvider jwtTokenProvider;
+        public ApiAdapter(JwtTokenProvider jwtTokenProvider) {
+            this.jwtTokenProvider = jwtTokenProvider;
+        }
+
+        /**
+         * Spring Boot 2.x 부터 자동 지원을 하지 않기 때문에 수동으로 등록한다.
+         * <p>Component 로 사용하면 Spring Security Filter 와 통합되므로 사용자가 정의한 필터를 사용하기 위해 {@link JwtTokenProvider} 를 통해서 인증 후 {@link org.springframework.security.core.context.SecurityContextHolder} 를 사용한다.</p>
+         * <p><a href="https://docs.spring.io/spring-security/reference/6.0/servlet/authentication/architecture.html#servlet-authentication-authenticationmanager">https://docs.spring.io/spring-security/reference/6.0/servlet/authentication/architecture.html#servlet-authentication-authenticationmanager</a></p>
+         */
+        @Bean
+        @Override
+        public AuthenticationManager authenticationManagerBean() throws Exception {
+            return super.authenticationManagerBean();
+        }
+
+        @Override
+        protected void configure(HttpSecurity httpSecurity) throws Exception {
+            httpSecurity
+                    .antMatcher("/api/**")
+                    .csrf().disable()
+                    .httpBasic().disable()
+                    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    .and()
+                        .authorizeRequests()
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                        .anyRequest().authenticated()
+                    .and()
+                        .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+                        .exceptionHandling()
+                        .authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));
+        }
+    }
+
+    /**
+     * Actuator 관련
+     */
     @Configuration
     @Order(99)
     static class ActuatorAdapter extends WebSecurityConfigurerAdapter {

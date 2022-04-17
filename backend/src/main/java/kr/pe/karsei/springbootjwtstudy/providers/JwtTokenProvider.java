@@ -2,9 +2,14 @@ package kr.pe.karsei.springbootjwtstudy.providers;
 
 import io.jsonwebtoken.*;
 import kr.pe.karsei.springbootjwtstudy.models.AuthUser;
+import kr.pe.karsei.springbootjwtstudy.models.TokenResponse;
+import kr.pe.karsei.springbootjwtstudy.services.AuthUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -13,6 +18,9 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Date;
 
+/**
+ * JWT Token 을 생성, 인증, 권한 부여, 유효성 검사 등의 기능을 담당한다.
+ */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -25,6 +33,11 @@ public class JwtTokenProvider {
 
     // Refresh Token 유효시간 (30분)
     private static final long TIME_VALID_REFRESH_TOKEN = Duration.ofMinutes(30).toMillis();
+
+    private final AuthUserService authUserService;
+    public JwtTokenProvider(AuthUserService authUserService) {
+        this.authUserService = authUserService;
+    }
 
     /**
      * 생성자를 만들면서 미리 Secret Key 를 Base64 로 변환합니다.
@@ -97,6 +110,32 @@ public class JwtTokenProvider {
          * }
          */
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
+    }
+
+    /**
+     * JWT Token 에서 인증 정보를 조회합니다.
+     * @param token JWT 토큰
+     * @return 인증 확인된 인증 객체 (setAuthenticated = true)
+     */
+    public Authentication getAuthentication(String token) {
+        UserDetails userDetails = authUserService.loadUserByUsername(getClaims(token).getSubject());
+        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+    }
+
+    /**
+     * 유저를 인증하고 JWT Token 을 생성합니다.
+     * @param username 유저 이름
+     * @return JWT Token 객체
+     */
+    public TokenResponse authorize(String username) {
+        // 조회
+        AuthUser member = authUserService.loadUserByUsername(username);
+        if (member == null) throw new IllegalArgumentException("가입되지 않은 이름입니다.");
+
+        return TokenResponse.builder()
+                .accessToken(createAccessToken(member))
+                .refreshToken(createRefreshToken())
+                .build();
     }
 
     /**
